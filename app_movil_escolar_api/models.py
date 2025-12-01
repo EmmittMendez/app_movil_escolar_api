@@ -59,3 +59,22 @@ class Maestros(models.Model):
 
     def __str__(self):
         return "Perfil del maestro "+self.user.first_name+" "+self.user.last_name   
+
+class Materias(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    nrc = models.CharField(max_length=6, unique=True, null=False, blank=False)
+    nombre = models.CharField(max_length=255, null=False, blank=False)
+    seccion = models.CharField(max_length=3, null=True, blank=True)
+    dias_json = models.TextField(null=True, blank=True)
+    hora_inicio = models.TimeField(null=True, blank=True)
+    hora_fin = models.TimeField(null=True, blank=True)
+    salon = models.CharField(max_length=15, null=True, blank=True)
+    programa_educativo = models.CharField(max_length=255, null=True, blank=True)
+    profesor = models.ForeignKey(Maestros, on_delete=models.SET_NULL, null=True, blank=True, related_name='materias_asignadas')
+    creditos = models.IntegerField(null=True, blank=True)
+    creation = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    update = models.DateTimeField(auto_now=True, null=True, blank=True)
+
+    def __str__(self):
+        return "Materia " + self.nombre + " - NRC: " + self.nrc
+

@@ -90,14 +90,14 @@ class MaestrosView(generics.CreateAPIView):
         user_groups = user.groups.values_list('name', flat=True)
         
         # Si es alumno, no puede editar maestros
-        if 'Alumno' in user_groups:
+        if 'alumno' in user_groups:
             return Response({"error": "Los alumnos no tienen permiso para editar maestros"}, status=403)
         
         # Primero obtenemos el maestro a actualizar
         maestro = get_object_or_404(Maestros, id=request.data["id"])
         
         # Si es maestro, solo puede editarse a sí mismo
-        if 'Maestro' in user_groups:
+        if 'maestro' in user_groups:
             # Verificar si el maestro autenticado es el mismo que se quiere editar
             try:
                 maestro_autenticado = Maestros.objects.get(user=user)
@@ -141,10 +141,10 @@ class MaestrosView(generics.CreateAPIView):
         user_groups = user.groups.values_list('name', flat=True)
         
         # Si es alumno o maestro, no puede eliminar maestros
-        if 'Alumno' in user_groups:
+        if 'alumno' in user_groups:
             return Response({"error": "Los alumnos no tienen permiso para eliminar maestros"}, status=403)
         
-        if 'Maestro' in user_groups:
+        if 'maestro' in user_groups:
             return Response({"error": "Los maestros no tienen permiso para eliminar maestros"}, status=403)
         
         # Solo Admin puede eliminar maestros

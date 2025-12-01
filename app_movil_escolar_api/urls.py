@@ -8,6 +8,7 @@ from app_movil_escolar_api.views import users
 from app_movil_escolar_api.views import alumnos
 from app_movil_escolar_api.views import maestros
 from app_movil_escolar_api.views import auth
+from app_movil_escolar_api.views import materias
 # from sistema_escolar_api.views import alumnos
 # from sistema_escolar_api.views import maestros
 
@@ -31,7 +32,11 @@ urlpatterns = [
     #Login
         path('login/', auth.CustomAuthToken.as_view()),
     #Logout
-        path('logout/', auth.Logout.as_view())
+        path('logout/', auth.Logout.as_view()),
+    #Create Materia
+        path('materias/', materias.MateriasView.as_view()),
+    #Materia Data
+        path('lista-materias/', materias.MateriasAll.as_view())
 ]
 
 if settings.DEBUG:

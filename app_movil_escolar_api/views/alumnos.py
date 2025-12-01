@@ -95,7 +95,7 @@ class AlumnosView(generics.CreateAPIView):
         user_groups = user.groups.values_list('name', flat=True)
         
         # Si es alumno, no puede editar alumnos
-        if 'Alumno' in user_groups:
+        if 'alumno' in user_groups:
             return Response({"error": "Los alumnos no tienen permiso para editar"}, status=403)
         
         # Primero obtenemos el alumno a actualizar
@@ -128,7 +128,7 @@ class AlumnosView(generics.CreateAPIView):
         user_groups = user.groups.values_list('name', flat=True)
         
         # Si es alumno, no puede eliminar alumnos
-        if 'Alumno' in user_groups:
+        if 'alumno' in user_groups:
             return Response({"error": "Los alumnos no tienen permiso para eliminar"}, status=403)
         
         alumno = get_object_or_404(Alumnos, id=request.GET.get("id"))

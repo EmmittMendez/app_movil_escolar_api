@@ -29,3 +29,13 @@ class MaestroSerializer(serializers.ModelSerializer):
     class Meta:
         model = Maestros
         fields = '__all__'
+
+class MateriaSerializer(serializers.ModelSerializer):
+    profesor = MaestroSerializer(read_only=True)
+    
+    class Meta:
+        model = Materias
+        fields = '__all__'
+
+
+        
