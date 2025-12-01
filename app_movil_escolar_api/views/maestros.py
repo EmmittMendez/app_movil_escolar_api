@@ -84,18 +84,37 @@ class MaestrosView(generics.CreateAPIView):
     @transaction.atomic
     def put(self, request, *args, **kwargs):
         permission_classes = (permissions.IsAuthenticated,)
+        
+        # Verificar el rol del usuario autenticado
+        user = request.user
+        user_groups = user.groups.values_list('name', flat=True)
+        
+        # Si es alumno, no puede editar maestros
+        if 'Alumno' in user_groups:
+            return Response({"error": "Los alumnos no tienen permiso para editar maestros"}, status=403)
+        
         # Primero obtenemos el maestro a actualizar
         maestro = get_object_or_404(Maestros, id=request.data["id"])
+        
+        # Si es maestro, solo puede editarse a sí mismo
+        if 'Maestro' in user_groups:
+            # Verificar si el maestro autenticado es el mismo que se quiere editar
+            try:
+                maestro_autenticado = Maestros.objects.get(user=user)
+                if maestro.id != maestro_autenticado.id:
+                    return Response({"error": "Solo puedes editar tu propio perfil"}, status=403)
+            except Maestros.DoesNotExist:
+                return Response({"error": "No tienes un perfil de maestro asociado"}, status=403)
         
         # Actualizar campos del maestro
         maestro.id_trabajador = request.data.get("id_trabajador", maestro.id_trabajador)
         maestro.fecha_nacimiento = request.data.get("fecha_nacimiento", maestro.fecha_nacimiento)
         maestro.telefono = request.data.get("telefono", maestro.telefono)
         maestro.rfc = request.data.get("rfc", maestro.rfc)
-        maestro.cubiculo = request.data.get("cubiculo", maestro.cubiculo)
+        maestro.cubiculo = request.ata.get("cubiculo", maestro.cubiculo)
         maestro.area_investigacion = request.data.get("area_investigacion", maestro.area_investigacion)
         
-        # Actualizar materias_json si viene en el request
+        # Actualizar materias_json dsi viene en el request
         if "materias_json" in request.data:
             materias = request.data["materias_json"]
             if isinstance(materias, list):
@@ -117,6 +136,18 @@ class MaestrosView(generics.CreateAPIView):
     # Eliminar maestro con delete (Borrar realmente)
     @transaction.atomic
     def delete(self, request, *args, **kwargs):
+        # Verificar el rol del usuario autenticado
+        user = request.user
+        user_groups = user.groups.values_list('name', flat=True)
+        
+        # Si es alumno o maestro, no puede eliminar maestros
+        if 'Alumno' in user_groups:
+            return Response({"error": "Los alumnos no tienen permiso para eliminar maestros"}, status=403)
+        
+        if 'Maestro' in user_groups:
+            return Response({"error": "Los maestros no tienen permiso para eliminar maestros"}, status=403)
+        
+        # Solo Admin puede eliminar maestros
         maestro = get_object_or_404(Maestros, id=request.GET.get("id"))
         try:
             maestro.user.delete()

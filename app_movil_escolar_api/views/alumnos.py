@@ -89,6 +89,15 @@ class AlumnosView(generics.CreateAPIView):
     @transaction.atomic
     def put(self, request, *args, **kwargs):
         permission_classes = (permissions.IsAuthenticated,)
+        
+        # Verificar el rol del usuario autenticado
+        user = request.user
+        user_groups = user.groups.values_list('name', flat=True)
+        
+        # Si es alumno, no puede editar alumnos
+        if 'Alumno' in user_groups:
+            return Response({"error": "Los alumnos no tienen permiso para editar"}, status=403)
+        
         # Primero obtenemos el alumno a actualizar
         alumno = get_object_or_404(Alumnos, id=request.data["id"])
         
@@ -114,6 +123,14 @@ class AlumnosView(generics.CreateAPIView):
     # Eliminar alumno con delete (Borrar realmente)
     @transaction.atomic
     def delete(self, request, *args, **kwargs):
+        # Verificar el rol del usuario autenticado
+        user = request.user
+        user_groups = user.groups.values_list('name', flat=True)
+        
+        # Si es alumno, no puede eliminar alumnos
+        if 'Alumno' in user_groups:
+            return Response({"error": "Los alumnos no tienen permiso para eliminar"}, status=403)
+        
         alumno = get_object_or_404(Alumnos, id=request.GET.get("id"))
         try:
             alumno.user.delete()
