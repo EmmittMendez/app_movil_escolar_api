@@ -15,7 +15,8 @@ class AlumnosAll(generics.CreateAPIView):
     #Aquí se valida la autenticación del usuario
     permission_classes = (permissions.IsAuthenticated,)
     def get(self, request, *args, **kwargs):
-        alumnos = Alumnos.objects.filter(user__is_active = 1).order_by("id")
+        #Usamos select_related para evitar N+1 consultas al obtener el usuario
+        alumnos = Alumnos.objects.select_related('user').filter(user__is_active = 1).order_by("id")
         lista = AlumnoSerializer(alumnos, many=True).data
         
         return Response(lista, 200)
@@ -32,7 +33,9 @@ class AlumnosView(generics.CreateAPIView):
     #     return [permissions.IsAuthenticated()]
     
     def get(self, request, *args, **kwargs):
-        alumno = get_object_or_404(Alumnos, id = request.GET.get("id"))
+        alumno = Alumnos.objects.select_related('user').filter(id=request.GET.get("id")).first()
+        if not alumno:
+            return Response({"error": "Alumno no encontrado"}, 404)
         alumno = AlumnoSerializer(alumno, many=False).data
         # Si todo es correcto, regresamos la información
         return Response(alumno, 200)
@@ -61,11 +64,10 @@ class AlumnosView(generics.CreateAPIView):
                                         last_name = last_name,
                                         is_active = 1)
 
-
-            user.save()
+            #Cifrar la contraseña
             user.set_password(password)
-            user.save()
-
+            
+            #Asignar grupo/rol
             group, created = Group.objects.get_or_create(name=role)
             group.user_set.add(user)
             user.save()
@@ -79,7 +81,6 @@ class AlumnosView(generics.CreateAPIView):
                                             edad= request.data["edad"],
                                             telefono= request.data["telefono"],
                                             ocupacion= request.data["ocupacion"])
-            alumno.save()
 
             return Response({"Alumno creado con ID= ": alumno.id }, 201)
 

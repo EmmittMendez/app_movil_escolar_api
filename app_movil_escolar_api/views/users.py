@@ -16,7 +16,7 @@ class AdminAll(generics.CreateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     # Invocamos la petición GET para obtener todos los administradores
     def get(self, request, *args, **kwargs):
-        admin = Administradores.objects.filter(user__is_active = 1).order_by("id")
+        admin = Administradores.objects.select_related('user').filter(user__is_active = 1).order_by("id")
         lista = AdminSerializer(admin, many=True).data
         return Response(lista, 200)
 
@@ -40,7 +40,9 @@ class AdminView(generics.CreateAPIView):
         return [permissions.IsAuthenticated()]
     
     def get(self, request, *args, **kwargs):
-        admin = get_object_or_404(Administradores, id = request.GET.get("id"))
+        admin = Administradores.objects.select_related('user').filter(id=request.GET.get("id")).first()
+        if not admin:
+            return Response({"error": "Administrador no encontrado"}, 404)
         admin = AdminSerializer(admin, many=False).data
         # Si todo es correcto, regresamos la información
         return Response(admin, 200)
@@ -71,12 +73,8 @@ class AdminView(generics.CreateAPIView):
                                         last_name = last_name,
                                         is_active = 1)
 
-
-            user.save()
-            #Cifrar la contraseña
+            #Cifrar la contraseña y asignar grupo/rol
             user.set_password(password)
-            user.save()
-
             group, created = Group.objects.get_or_create(name=role)
             group.user_set.add(user)
             user.save()
@@ -88,7 +86,6 @@ class AdminView(generics.CreateAPIView):
                                             rfc= request.data["rfc"].upper(),
                                             edad= request.data["edad"],
                                             ocupacion= request.data["ocupacion"])
-            admin.save()
 
             return Response({"admin_created_id": admin.id }, 201)
 
@@ -137,11 +134,11 @@ class TotalUsers(generics.CreateAPIView):
     #Contar el total de cada tipo de usuarios
     def get(self, request, *args, **kwargs):
         # TOTAL ADMINISTRADORES
-        admin_qs = Administradores.objects.filter(user__is_active=True)
+        admin_qs = Administradores.objects.select_related('user').filter(user__is_active=True)
         total_admins = admin_qs.count()
 
         # TOTAL MAESTROS
-        maestros_qs = Maestros.objects.filter(user__is_active=True)
+        maestros_qs = Maestros.objects.select_related('user').filter(user__is_active=True)
         lista_maestros = MaestroSerializer(maestros_qs, many=True).data
 
         # Convertir materias_json solo si existen maestros
@@ -154,7 +151,7 @@ class TotalUsers(generics.CreateAPIView):
         total_maestros = maestros_qs.count()
 
         # TOTAL ALUMNOS
-        alumnos_qs = Alumnos.objects.filter(user__is_active=True)
+        alumnos_qs = Alumnos.objects.select_related('user').filter(user__is_active=True)
         total_alumnos = alumnos_qs.count()
 
         # Respuesta final SIEMPRE válida

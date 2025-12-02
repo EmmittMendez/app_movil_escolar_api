@@ -23,7 +23,8 @@ class MateriasAll(generics.CreateAPIView):
         if 'alumno' in user_groups:
             return Response({"error": "Los alumnos no tienen permiso para ver materias"}, status=403)
         
-        materias = Materias.objects.all().order_by("id")
+        #Usamos select_related para evitar N+1 consultas (profesor y su usuario)
+        materias = Materias.objects.select_related('profesor', 'profesor__user').all().order_by("id")
         serializer = MateriaSerializer(materias, many=True)
         return Response(serializer.data, 200)
 
@@ -39,7 +40,9 @@ class MateriasView(generics.CreateAPIView):
         if 'alumno' in user_groups:
             return Response({"error": "Los alumnos no tienen permiso para ver materias"}, status=403)
         
-        materia = get_object_or_404(Materias, id=request.GET.get("id"))
+        materia = Materias.objects.select_related('profesor', 'profesor__user').filter(id=request.GET.get("id")).first()
+        if not materia:
+            return Response({"error": "Materia no encontrada"}, 404)
         serializer = MateriaSerializer(materia, many=False)
         return Response(serializer.data, 200)
 

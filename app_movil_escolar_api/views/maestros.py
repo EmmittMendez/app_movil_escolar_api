@@ -16,7 +16,8 @@ class MaestrosAll(generics.CreateAPIView):
     # Necesita permisos de autenticación de usuario para poder acceder a la petición
     permission_classes = (permissions.IsAuthenticated,)
     def get(self, request, *args, **kwargs):
-        maestros = Maestros.objects.filter(user__is_active=1).order_by("id")
+        #Usamos select_related para evitar N+1 consultas al obtener el usuario
+        maestros = Maestros.objects.select_related('user').filter(user__is_active=1).order_by("id")
         lista = MaestroSerializer(maestros, many=True).data
         for maestro in lista:
             if isinstance(maestro, dict) and "materias_json" in maestro:
@@ -29,7 +30,9 @@ class MaestrosAll(generics.CreateAPIView):
 class MaestrosView(generics.CreateAPIView):
 
     def get(self, request, *args, **kwargs):
-        maestros = get_object_or_404(Maestros, id = request.GET.get("id"))
+        maestros = Maestros.objects.select_related('user').filter(id=request.GET.get("id")).first()
+        if not maestros:
+            return Response({"error": "Maestro no encontrado"}, 404)
         maestros = MaestroSerializer(maestros, many=False).data
         
         # Parsear materias_json si existe
@@ -60,10 +63,8 @@ class MaestrosView(generics.CreateAPIView):
                                         first_name = first_name,
                                         last_name = last_name,
                                         is_active = 1)
-            user.save()
+            #Cifrar la contraseña y asignar grupo/rol
             user.set_password(password)
-            user.save()
-            
             group, created = Group.objects.get_or_create(name=role)
             group.user_set.add(user)
             user.save()
@@ -76,7 +77,6 @@ class MaestrosView(generics.CreateAPIView):
                                             cubiculo= request.data["cubiculo"],
                                             area_investigacion= request.data["area_investigacion"],
                                             materias_json = json.dumps(request.data["materias_json"]))
-            maestro.save()
             return Response({"Maestro creado con ID= ": maestro.id }, 201)
         return Response(user.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -111,7 +111,7 @@ class MaestrosView(generics.CreateAPIView):
         maestro.fecha_nacimiento = request.data.get("fecha_nacimiento", maestro.fecha_nacimiento)
         maestro.telefono = request.data.get("telefono", maestro.telefono)
         maestro.rfc = request.data.get("rfc", maestro.rfc)
-        maestro.cubiculo = request.ata.get("cubiculo", maestro.cubiculo)
+        maestro.cubiculo = request.data.get("cubiculo", maestro.cubiculo)
         maestro.area_investigacion = request.data.get("area_investigacion", maestro.area_investigacion)
         
         # Actualizar materias_json dsi viene en el request
